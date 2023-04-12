@@ -1,3 +1,3 @@
-api_token = 'vk group api token'
-group_id = 'vk group id (int)'
+api_token = 'vk1.a.7v5sGJ9P_ONYHR0MI6VgPX9a-e37MJkMj2WdYOw2q18juRtQIP-4bTcMYQ8XwHWgI3oKHVQ6tfWDt5zZsLLIygxBgThvGiJ0KRUOPDigMV2OORcAt-9mMsliv0_zQvLfF766ctKwX6mukw9lwj5vHrnw1IRLj1eb0YoWsuQAMoisIOfauZoUtsTobmAIsg0C7V5VAaV0xkPkJ-3yr6mlSQ'
+group_id = 190545343
 name = 'just a name'
