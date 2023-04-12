@@ -80,7 +80,7 @@ class BotServer(object):
                     
                     
                 if invite_action == 'chat_invite_user':
-                    self.send_pic_to_chat(url='./res/helloWorld.jpg', chat_id=chat_id, text='ЙОУ!!!!!\nРады приветствовать тебя в трахать? драть? ДРАХАТЬ!!!')
+                    self.send_pic_to_chat(url='./res/helloWorld.jpg', chat_id=chat_id, text='ЙОУ!!!!!\nРады приветствовать тебя в трахать? драть? ДРАХАТЬ!!!\nА особенно он')
                     self.chats_database[chat_id].clear()
                     self.chats_database[chat_id] = self.get_chat_members_data(chat_id)
 
