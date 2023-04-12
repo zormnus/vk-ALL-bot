@@ -31,8 +31,6 @@ class BotServer(object):
 
         self.amnesty_minute = 0
 
-        self.mikey_gif_url = './res/Gifka_s_Gifius_ru.gif'
-
 
     def send_message_to_chat(self, chat_id:int, message:str):
         self.vk_session.method('messages.send', {'chat_id': chat_id, 'message': message, 'random_id': get_random_id()})
@@ -47,10 +45,10 @@ class BotServer(object):
         return photo['owner_id'], photo['id']
     
 
-    def send_gif_to_chat(self, url, chat_id):
+    def send_pic_to_chat(self, url, chat_id, text=None):
         owner_id, photo_id = self.upload_photo(url)
         attachment = f'photo{owner_id}_{photo_id}'
-        self.vk_session.method('messages.send', {'chat_id': chat_id, 'attachment': attachment, 'random_id': get_random_id()})
+        self.vk_session.method('messages.send', {'chat_id': chat_id, 'attachment': attachment, 'random_id': get_random_id(), 'message': text})
 
     
 
@@ -68,7 +66,13 @@ class BotServer(object):
                 
                 if chat_id not in self.chats_database:
                         self.chats_database[chat_id] = self.get_chat_members_data(chat_id)
+
+                if chat_id not in self.all_counter:
+                    self.all_counter[chat_id] = {}
+                    for item in self.chats_database[chat_id]['items']:
+                        self.all_counter[chat_id][item['member_id']] = 0
                 
+                print(self.all_counter)
                 try:
                     invite_action = event.message.action['type']
                 except:
@@ -76,15 +80,15 @@ class BotServer(object):
                     
                     
                 if invite_action == 'chat_invite_user':
-                    self.send_message_to_chat(chat_id=chat_id, message='Йоу')
+                    self.send_pic_to_chat(url='./res/helloWORLD.jpg', chat_id=chat_id, text='ЙОУ!!!!!\nРады приветствовать тебя в трахать? драть? ДРАХАТЬ!!!')
                     self.chats_database[chat_id].clear()
                     self.chats_database[chat_id] = self.get_chat_members_data(chat_id)
 
 
                 if '@all' in event.obj.message['text'].lower() or '@все' in event.obj.message['text'].lower():
-                    if user_id not in self.all_counter:
-                        self.all_counter[user_id] = 0
-                    self.all_counter[user_id] += 1
+                    if user_id not in self.all_counter[chat_id]:
+                        self.all_counter[chat_id][user_id] = 0
+                    self.all_counter[chat_id][user_id] += 1
 
                     for person_dict in self.chats_database[chat_id]['items']:
                         if person_dict['member_id'] == user_id:
@@ -92,14 +96,14 @@ class BotServer(object):
                                 admin_status = person_dict['is_admin']
                             except KeyError as kerr:
                                 admin_status = False
-                    if self.perDay_all_limit - self.all_counter[user_id] > 0 and not admin_status:
+                    if self.perDay_all_limit - self.all_counter[chat_id][user_id] > 0 and not admin_status:
                         self.send_message_to_chat(chat_id=chat_id, 
-                                                message=f'Дружище, до кика из этой беседы осталось {self.perDay_all_limit - self.all_counter[user_id]} олла))')
+                                                message=f'Дружище, до кика из этой беседы осталось {self.perDay_all_limit - self.all_counter[chat_id][user_id]} олла))')
 
-                    if self.all_counter[user_id] >= self.perDay_all_limit and not admin_status:
-                        self.send_gif_to_chat(url=self.mikey_gif_url, chat_id=chat_id)
+                    if self.all_counter[chat_id][user_id] >= self.perDay_all_limit and not admin_status:
+                        self.send_pic_to_chat(url='./res/finishHIM.jpg', chat_id=chat_id)
                         self.vk.messages.removeChatUser(chat_id=chat_id, user_id=user_id)
-                        self.all_counter[user_id] = 0
+                        self.all_counter[chat_id][user_id] = 0
                         
                         
     def wait_next_day(self):
