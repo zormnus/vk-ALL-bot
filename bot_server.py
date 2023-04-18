@@ -2,7 +2,7 @@ import vk_api.vk_api
 from vk_api.upload import VkUpload
 from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
 from vk_api.utils import get_random_id
-from threading import Lock
+
 
 import logging
 import datetime
@@ -23,15 +23,13 @@ class BotServer(VkBotLongPoll):
 
         self.all_counter = {}
 
-        self.locker = Lock()
+        self.block_time = 15 * 60
 
         self.perDay_all_limit = 3
 
         self.chats_database = {}
 
         self.amnesty_time = datetime.time(22, 0, 0)
-
-        schedule.every().day.at(str(self.amnesty_time)).do(self.amnesty)
 
         logging.basicConfig(filename='./logs/event_logs.txt',
                             filemode='a',
@@ -46,50 +44,44 @@ class BotServer(VkBotLongPoll):
             try:
                 for event in self.longpoll.listen():
                     logging.info(event)
+                    user_id = event.message.from_id
+                    chat_id = event.chat_id
                     if event.type == VkBotEventType.MESSAGE_NEW and event.from_chat:
-                        user_id = event.message.from_id
-                        chat_id = event.chat_id
-                        
-                        if chat_id not in self.chats_database:
-                                self.chats_database[chat_id] = self.get_chat_members_data(chat_id)
-
-                        if chat_id not in self.all_counter:
-                            self.all_counter[chat_id] = {}
-                            for item in self.chats_database[chat_id]['items']:
-                                self.all_counter[chat_id][item['member_id']] = 0
-                        
-                        print(self.all_counter)
-                        try:
-                            invite_action = event.message.action['type']
-                        except:
-                            invite_action = ''
-                            
-                            
-                        if invite_action == 'chat_invite_user':
+                        if event.message.action['type'] == 'chat_invite_user':
                             self.send_pic_to_chat(url='./res/helloWorld.jpg', chat_id=chat_id, text='ЙОУ!!!!!\nРады приветствовать тебя в трахать? драть? ДРАХАТЬ!!!\nА особенно он')
                             self.chats_database[chat_id].clear()
                             self.chats_database[chat_id] = self.get_chat_members_data(chat_id)
+                        else:
+                            if chat_id not in self.chats_database:
+                                    self.chats_database[chat_id] = self.get_chat_members_data(chat_id)
 
+                            if chat_id not in self.all_counter:
+                                self.all_counter[chat_id] = {}
+                                for item in self.chats_database[chat_id]['items']:
+                                    self.all_counter[chat_id][item['member_id']] = 0
+                            
+                            print(self.all_counter)
 
-                        if '@all' in event.obj.message['text'].lower() or '@все' in event.obj.message['text'].lower():
-                            if user_id not in self.all_counter[chat_id]:
-                                self.all_counter[chat_id][user_id] = 0
-                            self.all_counter[chat_id][user_id] += 1
+                            if '@all' in event.obj.message['text'].lower() or '@все' in event.obj.message['text'].lower():
+                                if user_id not in self.all_counter[chat_id]:
+                                    self.all_counter[chat_id][user_id] = 0
+                                self.all_counter[chat_id][user_id] += 1
 
-                            for person_dict in self.chats_database[chat_id]['items']:
-                                if person_dict['member_id'] == user_id:
-                                    try:
-                                        admin_status = person_dict['is_admin']
-                                    except KeyError as kerr:
-                                        admin_status = False
-                            if self.perDay_all_limit - self.all_counter[chat_id][user_id] > 0 and not admin_status:
-                                self.send_message_to_chat(chat_id=chat_id, 
-                                                        message=f'Дружище, до кика из этой беседы осталось {self.perDay_all_limit - self.all_counter[chat_id][user_id]} олла))')
+                                for person_dict in self.chats_database[chat_id]['items']:
+                                    if person_dict['member_id'] == user_id:
+                                        try:
+                                            admin_status = person_dict['is_admin']
+                                        except KeyError as kerr:
+                                            admin_status = False
+                                if self.perDay_all_limit - self.all_counter[chat_id][user_id] > 0 and not admin_status:
+                                    self.send_message_to_chat(chat_id=chat_id, 
+                                                            message=f'Дружище, до кика из этой беседы осталось {self.perDay_all_limit - self.all_counter[chat_id][user_id]} олла))')
 
-                            if self.all_counter[chat_id][user_id] >= self.perDay_all_limit and not admin_status:
-                                self.send_pic_to_chat(url='./res/finishHIM.jpg', chat_id=chat_id)
-                                self.vk.messages.removeChatUser(chat_id=chat_id, user_id=user_id)
-                                self.all_counter[chat_id][user_id] = 0
+                                if self.all_counter[chat_id][user_id] >= self.perDay_all_limit and not admin_status:
+                                    self.send_pic_to_chat(url='./res/finishHIM.jpg', chat_id=chat_id)
+                                    self.vk.messages.removeChatUser(chat_id=chat_id, user_id=user_id)
+                                    self.all_counter[chat_id][user_id] = 0
+                        
             except Exception as e:
                 print(e)
                 time.sleep(1)
@@ -97,10 +89,6 @@ class BotServer(VkBotLongPoll):
 
     def send_message_to_chat(self, chat_id:int, message:str):
         self.vk_session.method('messages.send', {'chat_id': chat_id, 'message': message, 'random_id': get_random_id()})
-
-
-    def send_message_to_user(self, user_id:int, message:str):
-        self.vk_session.method('messages.send', {'user_id': user_id, 'message': message, 'random_id': get_random_id()})
 
 
     def upload_photo(self, url):
@@ -124,9 +112,12 @@ class BotServer(VkBotLongPoll):
             self.send_message_to_chat(chat_id=chat_id, message='Борьба за выживание продолжается ^_^\nУ всех по 3 олла!')
 
 
+    def block_messages(self, peer_id:int, user_id:int):
+        self.vk_session.method('messages.setMemberRole', {'peer_id': 2000000000 + peer_id, 'member_id': user_id, 'role': 'restricted', 'timeout': 20})
+
+
     def wait_next_day(self):
-        event_time = datetime.time(2, 48, 0)
-        schedule.every().day.at(str(event_time)).do(self.amnesty)
+        schedule.every().day.at(str(self.amnesty_time)).do(self.amnesty)
         while True:
             schedule.run_pending()
             time.sleep(1)
