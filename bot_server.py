@@ -60,7 +60,7 @@ class BotServer(VkBotLongPoll):
                                 for item in self.chats_database[chat_id]['items']:
                                     self.all_counter[chat_id][item['member_id']] = 0
                             
-                            print(self.all_counter)
+                            logging.info(f'All counter in {chat_id} chat: ', self.all_counter)
 
                             if '@all' in event.obj.message['text'].lower() or '@все' in event.obj.message['text'].lower():
                                 if user_id not in self.all_counter[chat_id]:
